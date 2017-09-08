@@ -405,6 +405,11 @@ printedFilename==0 {
 	sub("WithEvents","");
 }
 
+# MustInherit -> abstract
+/[[:blank:]]MustInherit[[:blank:]]/ && (csharpStyledOutput==1) {
+	sub("MustInherit","abstract");
+}
+
 # Overrides -> override
 /[[:blank:]]Overrides[[:blank:]]/ && (csharpStyledOutput==1) {
 	sub("Overrides","override");
