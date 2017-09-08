@@ -410,6 +410,11 @@ printedFilename==0 {
 	sub("MustInherit","abstract");
 }
 
+# MustOverride -> abstract
+/[[:blank:]]MustOverride[[:blank:]]/ && (csharpStyledOutput==1) {
+	sub("MustOverride","abstract");
+}
+
 # Overrides -> override
 /[[:blank:]]Overrides[[:blank:]]/ && (csharpStyledOutput==1) {
 	sub("Overrides","override");
