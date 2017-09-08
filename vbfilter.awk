@@ -133,7 +133,7 @@ fullLine==0{
 #############################################################################
 
 # if file begins with a class definition, swith to VB6 mode
-/.*[[:blank:]]+CLASS/ ||
+(/.*[[:blank:]]+CLASS/ && insideComment!=1) ||
 /.*[[:blank:]]+VB\.Form[[:blank:]]+/ ||
 /.*[[:blank:]]+VB\.UserControl[[:blank:]]+/ {
 	insideVB6Class=1;
