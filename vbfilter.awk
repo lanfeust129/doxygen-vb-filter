@@ -75,6 +75,7 @@ BEGIN{
 	isInherited=0;
 	lastLine="";
 	appShift="";
+	genericTypeConstraint="";
 	
 }
 
@@ -549,6 +550,14 @@ insideEnum==1 {
 	sub("Alias[[:blank:]]+[^[:blank:]]+","");
 }
 
+#############################################################################
+# classes (handle class(Of T As U))
+#############################################################################
+
+/.*Class +([^\( ]+) *\(Of +([^ \)]+) *As *([^\) ]+)\)/ {
+	genericTypeConstraint = gensub(/.*Class +[^\( ]+ *\(Of +([^ \)]+) *As *([^\) ]+)\)/,"\\1 : \\2","g",$0);
+	$0=gensub(/(.*Class +[^\( ]+ *\(Of +[^ \)]+) *As *([^\) ]+)\)/,"\\1)", "g", $0);
+}
 
 
 #############################################################################
@@ -760,6 +769,7 @@ function findEndArgs(string) {
 #############################################################################
 # interfaces, classes, structures
 #############################################################################
+
 /^Interface[[:blank:]]+/ ||
 /.*[[:blank:]]Interface[[:blank:]]+/ ||
 /^Class[[:blank:]]+/ ||
@@ -771,7 +781,8 @@ function findEndArgs(string) {
 	sub("Interface","interface");
 	sub("Class","class");
 	sub("Structure","struct");
-	sub("Type","struct");
+	$0=gensub(/^Type( +)/,"struct\\1","g",$0);
+	$0=gensub(/( +)Type( +)/,"\\1struct\\2","g",$0);
 	if(isInherited) {
 		endOfInheritance();
 	}
@@ -814,6 +825,11 @@ isInherited==1{
 			sub(".*Inherits",",");
 			sub(".*Implements",",");
 			lastLine=lastLine $0;
+		}
+		
+		if( genericTypeConstraint != "")
+		{
+			lastLine=lastLine " where " genericTypeConstraint
 		}
 	}
 	else {
