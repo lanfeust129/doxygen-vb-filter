@@ -49,25 +49,9 @@ BEGIN{
 	# in C# unlike in VB .NET a namespace must always be defined
 	leadingNamespace=1;
 	
-	# per default the parser converts all keywords to their C# equivalents:
-	# Function -> function
-	# Sub -> void
-	# ....
-	# Set csharpStyledOutput=0 to keep the VB style in the resulting 
-	# documentation.
-	csharpStyledOutput=1;
-	
 #############################################################################
 # helper variables, don't change
 #############################################################################
-	printedFilename=0;
-	fileHeader=0;
-	classNestCounter=0;
-	insideNamespace=0;
-	insideComment=0;
-	insideImports=0;
-	instideVB6Property=0;
-	isInherited=0;
 	appShift="";
 	
 	# Used to merge multiline statements
@@ -197,7 +181,7 @@ function HandleKeywords() {
 	$0 = gensub(/(\y)Me(\y)/, "\\1this\\2", "g", $0);
 }
 
-#Condition specific replacement (i.e. = which is only comparison and not assignation)
+#Condition specific replacement (i.e. = which is only comparison and not assignment)
 function HandleCondition(strCondition) {
 	strCondition = gensub(/([^!])=/, "\\1==", "g", strCondition);
 	
