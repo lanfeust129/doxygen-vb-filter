@@ -871,14 +871,9 @@ function HandleIfElse() {
 		PrintGoNext();
 	}
 
-	if(/^[ \t]*Else/) {
-		$0 = gensub(/([ \t]*)Else/, "\\1} else {", "g", $0);
-		PrintGoNext();
-	}
-
 	if(/[ \t]*(Else)?If .+ Then/) {
 		condition = gensub(/^[ \t]*(Else)?If +(.+) +Then(\y.+)?/, "\\2", "g", $0);
-		inlineThen = gensub(/^[ \t]*If +(.+) +Then(\y.+)?/, "\\2", "g", $0);
+		inlineThen = gensub(/^[ \t]*(Else)?If +(.+) +Then(\y.+)?/, "\\3", "g", $0);
 		
 		condition = HandleCondition(condition);
 		ident = gensub(/^([ \t]*)(Else)?If +.+ Then(\y.+)?/, "\\1", "g", $0);
@@ -898,6 +893,11 @@ function HandleIfElse() {
 		} else {
 			PrintGoNext(";");
 		}
+	}
+
+	if(/^[ \t]*Else/) {
+		$0 = gensub(/([ \t]*)Else/, "\\1} else {", "g", $0);
+		PrintGoNext();
 	}
 }
 
