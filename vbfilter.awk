@@ -159,12 +159,20 @@ function HandleObjects() {
 	$0 = gensub(/(\y)New /, "\\1new ", "g", $0);
 	$0 = gensub(/([^ ]+) As ([^=]+)( =)?/, "\\2 \\1\\3", "g", $0);
 	HandleOf();
+	HandleLambdaExpression();
 }
 
 function HandleOf() {
 	#Begin with nested Of
 	while(/\(Of +(( *,? *[^ \(\)]+)+) *\)/) {
 		$0 = gensub(/\(Of +(( *,? *[^ \(\)]+)+) *\)/, "<\\1>", "g", $0);
+	}
+}
+
+function HandleLambdaExpression() {
+	# inline
+	if(/\y(Sub|Function) *\([^\)]+\) *[^ \t]+/) {
+		$0 = gensub(/\y(Sub|Function) *\(([^\)]+)\)/, "\\2 =>", "g", $0);
 	}
 }
 
