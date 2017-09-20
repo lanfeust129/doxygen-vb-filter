@@ -54,6 +54,10 @@ BEGIN{
 #############################################################################
 	appShift="";
 	
+	# Program behavior
+	IsProperty = 0;
+	IsInterface = 0;
+	
 	removeBlankLines = 0;
 	# Used to merge multiline statements
 	fullLine=1;
@@ -69,7 +73,6 @@ BEGIN{
 	functionNestingLevel=0;
 	classNestingLevel=0;
 	# Used for properties
-	IsProperty = 0;
 	hasPropertySetter = 1;
 	setParameterName = "";
 	# Used when method parameters are on multiple lines
@@ -104,6 +107,7 @@ MergeMultiline();
 HandleKeywords();
 HandleNamespace();
 HandleClass();
+HandleInterface();
 HandleProperty();
 HandleSubFunction();
 HandleVariable();
@@ -152,7 +156,7 @@ function HandleOption() {
 
 function HandleObjects() {
 	$0 = gensub(/(\y)New /, "\\1new ", "g", $0);
-	$0 = gensub(/([^ ]+) As ([^ ]+)/, "\\2 \\1", "g", $0);
+	$0 = gensub(/([^ ]+) As ([^=]+)( =)?/, "\\2 \\1\\3", "g", $0);
 	HandleOf();
 }
 
@@ -359,6 +363,24 @@ function HandleNamespace() {
 }
 
 #############################################################################
+# Interface
+#############################################################################
+
+function HandleInterface() {
+	if(/^[ \t]*End Interface/) {
+		$0 = gensub(/([ \t]*)End Interface/, "\\1}", "g", $0);
+		IsInterface = 0;
+		PrintGoNext();
+	}
+
+	if(/\yInterface\y/) {
+		$0 = gensub(/(.*)Interface +(.+)/, "\\1interface \\2 {", "g", $0);
+		IsInterface = 1;
+		PrintGoNext();
+	}
+}
+
+#############################################################################
 # Class definition
 #############################################################################
 
@@ -534,7 +556,7 @@ function HandleSubFunction() {
 	}
 
 	#Then match sub or function itself
-	if(/ (Sub|Function) /) {
+	if(/\y(Sub|Function)\y/) {
 		if(/Sub New/) {
 			#Match constructors
 			$0 = gensub(/Sub +New(.+)/, className[classNestingLevel - 1] "\\1", "g", $0);
@@ -556,7 +578,7 @@ function HandleSubFunction() {
 		
 		functionNestingLevel++;
 		
-		if(/ abstract /) {
+		if(/ abstract / || IsInterface) {
 			PrintGoNext(";");
 		} else if (/[\(][ \t]*$/) {
 			PrintGoNext();
@@ -604,7 +626,7 @@ function HandleVariable() {
 	}
 
 	if(/^[ \t]*Dim ([^ ]+) As ([^=]+)/) {
-		$0 = gensub(/^([ \t]*)Dim +([^ ]+) +As +([^=]+)/, "\\1 \\3 \\2", "g", $0);
+		$0 = gensub(/^([ \t]*)Dim\y(.+)/, "\\1\\2", "g", $0);
 		HandleObjects();
 		
 		if(/[\(,][ \t]*$/) {
@@ -679,6 +701,9 @@ function HandleSelect() {
 	}
 
 	if(/^[ \t]*Case /) {
+		if(caseClause != "") {
+			print space "\tbreak;";
+		}
 		space = gensub(/^([ \t]*)Case.+/, "\\1", "g", $0);
 		caseClause = gensub(/^[ \t]*Case +(.+)/, "\\1", "g", $0);
 		split(caseClause, cases, ",");
@@ -691,6 +716,7 @@ function HandleSelect() {
 
 	if(/^[ \t]*Select +Case /) {
 		$0 = gensub(/^([ \t]*)Select +Case +(.+)/, "\\1switch(\\2) {", "g", $0);
+		caseClause = "";
 		PrintGoNext();
 	}
 }
@@ -792,13 +818,14 @@ function HandleIfElse() {
 	}
 
 	if(/^[ \t]*Else/) {
-		$0 = gensub(/([ \t]*)Else/, "} else {", "g", $0);
+		$0 = gensub(/([ \t]*)Else/, "\\1} else {", "g", $0);
 		PrintGoNext();
 	}
 
 	if(/[ \t]*(Else)?If .+ Then/) {
 		condition = gensub(/^[ \t]*(Else)?If +(.+) +Then(\y.+)?/, "\\2", "g", $0);
 		inlineThen = gensub(/^[ \t]*If +(.+) +Then(\y.+)?/, "\\2", "g", $0);
+		
 		condition = HandleCondition(condition);
 		ident = gensub(/^([ \t]*)(Else)?If +.+ Then(\y.+)?/, "\\1", "g", $0);
 		#Made by concatenation to avoid interpreting & of the condition
@@ -809,7 +836,7 @@ function HandleIfElse() {
 		}
 		
 		if(!match(inlineThen, /^[ \t]*$/)) { #IsNullOrWhiteSpace
-			$0 = ident " }";
+			$0 = $0 " }";
 		}
 		
 		if(/[{}][ \t]*$/) {
