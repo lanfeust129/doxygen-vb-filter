@@ -106,6 +106,7 @@ MergeMultiline();
 
 HandleKeywords();
 HandleNamespace();
+HandleMethodAttribute();
 HandleClass();
 HandleInterface();
 HandleProperty();
@@ -385,6 +386,18 @@ function HandleInterface() {
 }
 
 #############################################################################
+# Method attribute
+#############################################################################
+
+function HandleMethodAttribute() {
+	if(/^[ \t]*<[^>]+>[ \t]*$/) {
+		$0 = gensub(/^([ \t]*)<([^>]+)>[ \t]*$/, "\\1[\\2]", "g", $0);
+		
+		PrintGoNext();
+	}
+}
+
+#############################################################################
 # Class definition
 #############################################################################
 
@@ -447,7 +460,12 @@ function HandleClass() {
 			$0 = gensub(/(.*Class +[^\(]+)\(Of +([^ \)]+) *\)/, "\\1<\\2>", "g", $0);
 		}
 		
-		$0 = gensub(/(.+)Class +([^ \(]+)/, "\\1 class \\2", "g", $0);
+		if(/\yPartial\y/) {
+			$0 = gensub(/\y(Partial\y)/, "", "g", $0);
+			$0 = gensub(/(.+)Class +([^ \(]+)/, "\\1 partial class \\2", "g", $0);
+		} else {
+			$0 = gensub(/(.+)Class +([^ \(]+)/, "\\1 class \\2", "g", $0);
+		}
 		classNestingLevel++;
 		
 		classDefinition = $0;
@@ -559,8 +577,8 @@ function HandleSubFunction() {
 		PrintGoNext(";");
 	}
 
-	#Then match sub or function itself
-	if(/\y(Sub|Function)\y/) {
+	#Then match sub or function itself (avoid anonymous function)
+	if(/\y(Sub|Function) +[^ \(]+\y/) {
 		if(/\yImplements\y/) {
 			interfaceMethodName = gensub(/^.+\yImplements\y(.+)$/, "\\1", "g", $0);
 			
