@@ -228,7 +228,7 @@ function HandleXHTML(str) {
 	return str;
 }
 
-function HandleParameters(parameter) {
+function HandleParameters(parameter, removeType) {
 	if(match(parameter, /,/)) {
 		split(parameter, arrayParams, ",");
 	} else {
@@ -236,6 +236,10 @@ function HandleParameters(parameter) {
 	}
 	
 	strReturn = "";
+	regexResultPattern = "\\1\\3 \\2";
+	if(removeType) {
+		regexResultPattern = "\\1 \\2";
+	}
 	for (idx in arrayParams) {
 		param = arrayParams[idx];
 		
@@ -244,9 +248,9 @@ function HandleParameters(parameter) {
 		param = gensub(/([ ,])New /, "\\1new ", "g", param);
 		
 		if(strReturn == "") {
-			strReturn = gensub(/[ \t]*(ref +)?([^ ]+) As ([^ ]+)/, "\\1\\3 \\2", "g", param);
+			strReturn = gensub(/[ \t]*(ref +)?([^ ]+) As ([^ ]+)/, regexResultPattern, "g", param);
 		} else {
-			strReturn = strReturn ", " gensub(/[ \t]*(ref +)?([^ ]+) As ([^ ]+)/, "\\1\\3 \\2", "g", param);
+			strReturn = strReturn ", " gensub(/[ \t]*(ref +)?([^ ]+) As ([^ ]+)/, regexResultPattern, "g", param);
 		}
 	}
 	delete arrayParams;
@@ -557,6 +561,38 @@ function HandleSubFunction() {
 
 	#Then match sub or function itself
 	if(/\y(Sub|Function)\y/) {
+		if(/\yImplements\y/) {
+			interfaceMethodName = gensub(/^.+\yImplements\y(.+)$/, "\\1", "g", $0);
+			
+			#remove implements from current line
+			$0 = gensub(/\yImplements\y.+$/, "", "g", $0);
+			
+			if(/\yFunction\y/) {
+				classMethodName = gensub(/^.+Function +([^ \(]+)(\([^\)]*\)) +As +.+$/, "\\1", "g", $0);
+				interfaceMethod = gensub(/^(.+)Function +([^ \(]+)(\([^\)]*\)) +As +([^ \(]+( ?\(Of +[^ \)]+\))?)/, "\\4 " interfaceMethodName "\\3 {", "g", $0);
+			} else {
+				classMethodName = gensub(/^.+Sub +([^ \(]+)(\([^\)]*\)).+$/, "\\1", "g", $0);
+				interfaceMethod = gensub(/^(.+)Sub +([^ \(]+)(\([^\)]*\))/, "void " interfaceMethodName "\\3 {", "g", $0);
+			}
+			ident = gensub(/^([ \t]*).*$/, "\\1", "g", $0);
+
+			methodParams = "";
+			methodParams = gensub(/.*\(([^\)]*)\).*/, "\\1", "g", interfaceMethod);
+			methodParamsNoType = HandleParameters(methodParams, 1);
+			methodParams = HandleParameters(methodParams);
+			interfaceMethod = gensub(/\(([^\)]*)\)/, "(" methodParams ")", "g", interfaceMethod);
+		
+			sub(/\yabstract\y/, "", interfaceMethod);
+			
+			print ident interfaceMethod;
+			if(/\yFunction\y/) {
+				print ident "\treturn " classMethodName "(" methodParamsNoType ");";
+			} else {
+				print ident "\t" classMethodName "(" methodParamsNoType ");";
+			}
+			print ident "}";
+		}
+		
 		if(/Sub New/) {
 			#Match constructors
 			$0 = gensub(/Sub +New(.+)/, className[classNestingLevel - 1] "\\1", "g", $0);
@@ -655,7 +691,7 @@ function HandleRegion() {
 #############################################################################
 
 function HandleBlankLine(remove) {
-	if((/^[[:blank:]]+$/ || $0 == "") && !remove) {
+	if(/^\s*$/ && !remove) {
 		PrintGoNext();
 	}
 }
