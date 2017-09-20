@@ -38,6 +38,9 @@
 # Optional params
 # new -> add parenthesis when needed
 # generic functions / subs
+# anonymous functions / subs
+# lambda expressions on multiple lines
+# Handles
 #---------------------------------------------------------------------------- 
 
 
@@ -119,9 +122,11 @@ MergeMultiline();
 HandleKeywords();
 HandleNamespace();
 HandleMethodAttribute();
+
 HandleClass();
 HandleInterface();
 HandleProperty();
+
 HandleSubFunction();
 HandleVariable();
 HandleWith();
@@ -130,6 +135,7 @@ HandleForForEach();
 HandleTryCatch();
 HandleIfElse();
 HandleSyncLock();
+
 HandleCodeLine();
 
 #############################################################################
