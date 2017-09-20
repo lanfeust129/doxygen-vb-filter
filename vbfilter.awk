@@ -698,6 +698,18 @@ function HandleVariable() {
 			PrintGoNext(";");
 		}
 	}
+
+	if(/^[ \t]*Dim ([^ =]+) *=/) {
+		$0 = gensub(/^([ \t]*)Dim\y(.+)/, "\\1dynamic \\2", "g", $0);
+		HandleObjects();
+		
+		if(/[\(,][ \t]*$/) {
+			enumeratingParameters = 1;
+			PrintGoNext();
+		} else {
+			PrintGoNext(";");
+		}
+	}
 }
 
 #############################################################################
