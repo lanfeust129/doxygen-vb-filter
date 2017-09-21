@@ -37,7 +37,6 @@
 # inline Linq
 # Optional params
 # new -> add parenthesis when needed
-# generic functions / subs
 # anonymous functions / subs
 # lambda expressions on multiple lines
 # Handles
@@ -68,12 +67,14 @@ BEGIN{
 # helper variables, don't change
 #############################################################################
 	appShift="";
+	ident = "";
 	
 	# Program behavior
 	IsProperty = 0;
 	IsInterface = 0;
 	
 	removeBlankLines = 0;
+	
 	# Used to merge multiline statements
 	fullLine=1;
 	lastLine="";
@@ -110,8 +111,10 @@ IsProperty {
 	HandleInlineComment();
 	HandleProperty();
 }
-HandleComments();
+
+GetLineShift();
 HandleBlankLine(removeBlankLines);
+HandleComments();
 
 HandleOption();
 HandleImport();
@@ -127,6 +130,7 @@ HandleClass();
 HandleInterface();
 HandleProperty();
 
+HandleConversions();
 HandleSubFunction();
 HandleVariable();
 HandleWith();
@@ -147,6 +151,10 @@ function AddShift() {
 
 function ReduceShift() {
 	appShift=substr(appShift,0,length(appShift)-length(ShiftRight));
+}
+
+function GetLineShift() {
+	ident = gensub(/^([ \t]*).*$/, "\\1", "g", $0);
 }
 
 #############################################################################
@@ -198,6 +206,13 @@ function HandleLambdaExpression() {
 # Functions
 #############################################################################
 
+function HandleConversions() {
+	$0 = gensub(/(\y)CDate\(([^\)]+)\)/, "\\1Convert.ToDateTime(\\2)", "g", $0);
+	$0 = gensub(/(\y)CInt\(([^\)]+)\)/, "\\1Convert.ToInt32(\\2)", "g", $0);
+	
+	$0 = gensub(/(\y)(DirectCast|CType)\( *([^\),]+) *, *([^\),]+) *\)/, "\\1(\\4)\\3", "g", $0);
+}
+
 function HandleKeywords() {
 	$0 = gensub(/(\y)Public(\y)/, "\\1public\\2", "g", $0);
 	$0 = gensub(/(\y)Private(\y)/, "\\1private\\2", "g", $0);
@@ -218,6 +233,7 @@ function HandleKeywords() {
 	$0 = gensub(/(\y)Integer(\y)/, "\\1int\\2", "g", $0);
 	$0 = gensub(/(\y)Boolean(\y)/, "\\1bool\\2", "g", $0);
 	$0 = gensub(/(\y)Double(\y)/, "\\1double\\2", "g", $0);
+	$0 = gensub(/(\y)Decimal(\y)/, "\\1decimal\\2", "g", $0);
 	$0 = gensub(/(\y)String(\y)/, "\\1string\\2", "g", $0);
 	#Boolean
 	$0 = gensub(/(\y)True(\y)/, "\\1true\\2", "g", $0);
@@ -330,7 +346,10 @@ function HandleInlineComment() {
 
 function HandleCommentLine() {
 	if(/^[ \t]*'/) {
-		$0 = gensub(/'''/, "///", "g", $0);
+		if(!/''' /) {
+			sub("'''", "''' ");
+		}
+		sub(/'''/, "///");
 		$0 = gensub(/^([ \t]*)'(.+)$/, "\\1//\\2", "g", $0);
 		$0 = HandleXHTML($0);
 		
@@ -513,14 +532,14 @@ function HandlePropertyEnd() {
 	IsProperty = 0;
 	
 	if(waitEndProperty) {
-		$0 = space "}";
+		$0 = ident "}";
 		PrintGoNext();
 	} else {
-		print space "\tget;";
+		print ident "\tget;";
 		if(hasPropertySetter) {
-			print space "\tset;";
+			print ident "\tset;";
 		}
-		print space "}";
+		print ident "}";
 	}
 }
 
@@ -573,7 +592,6 @@ function HandlePropertyFirstLine() {
 		
 		sub("Property ", "");
 		
-		space = gensub(/^([ \t]*).+$/, "\\1", "g", $0);
 		$0 = gensub(/([ \t]*[^ ]+) ([^ ]+) As ([^ ]+)/, "\\1 \\3 \\2 {", "g", $0);
 		
 		if(/ ReadOnly /){
@@ -605,6 +623,17 @@ function HandleSubFunction() {
 
 	#Then match sub or function itself (avoid anonymous function)
 	if(/\y(Sub|Function) +[^ \(]+\y/) {
+		genericTypeConstraint = "";
+		
+		# Handle (Of Type) to remove parenthesis (easier to handle the rest)
+		HandleOf();
+		
+		#Stores and remove generic type constraint
+		if(/.*(Sub|Function) +[^\( ]+ *< *.+ +As +(.+)> *\(.*\)/) {
+			genericTypeConstraint = gensub(/^.*(Sub|Function) +[^\( ]+ *< *(.+) +As +(.+)> *\(.*\).+$/, " where \\2 : \\3", "g", $0);
+			$0 = gensub(/(.*(Sub|Function) +[^\( ]+ *< *.+) +As +.+>( *\(.*\))/, "\\1>\\3", "g", $0);
+		}
+		
 		if(/\yImplements\y/) {
 			interfaceMethodName = gensub(/^.+\yImplements\y(.+)$/, "\\1", "g", $0);
 			
@@ -612,13 +641,14 @@ function HandleSubFunction() {
 			$0 = gensub(/\yImplements\y.+$/, "", "g", $0);
 			
 			if(/\yFunction\y/) {
-				classMethodName = gensub(/^.+Function +([^ \(]+)(\([^\)]*\)) +As +.+$/, "\\1", "g", $0);
-				interfaceMethod = gensub(/^(.+)Function +([^ \(]+)(\([^\)]*\)) +As +([^ \(]+( ?\(Of +[^ \)]+\))?)/, "\\4 " interfaceMethodName "\\3 {", "g", $0);
+				classMethodName = gensub(/^.*Function +([^\(]+)(\([^\)]*\)) +As +.+$/, "\\1", "g", $0);
+				interfaceMethod = gensub(/^(.*)Function +([^\(]+)(\([^\)]*\)) +As +([^ \(]+)/, "\\4 " interfaceMethodName "\\3 {", "g", $0);
+		
 			} else {
-				classMethodName = gensub(/^.+Sub +([^ \(]+)(\([^\)]*\)).+$/, "\\1", "g", $0);
-				interfaceMethod = gensub(/^(.+)Sub +([^ \(]+)(\([^\)]*\))/, "void " interfaceMethodName "\\3 {", "g", $0);
+				classMethodName = gensub(/^.*Sub +([^\(]+)(\([^\)]*\)).+$/, "\\1", "g", $0);
+				interfaceMethod = gensub(/^(.*)Sub +([^\(]+)(\([^\)]*\))/, "void " interfaceMethodName "\\3 {", "g", $0);
 			}
-			ident = gensub(/^([ \t]*).*$/, "\\1", "g", $0);
+				
 
 			methodParams = "";
 			methodParams = gensub(/.*\(([^\)]*)\).*/, "\\1", "g", interfaceMethod);
@@ -630,9 +660,9 @@ function HandleSubFunction() {
 			
 			print ident interfaceMethod;
 			if(/\yFunction\y/) {
-				print ident "\treturn " classMethodName "(" methodParamsNoType ");";
+				print ident "\treturn " classMethodName "(" methodParamsNoType ")" genericTypeConstraint ";";
 			} else {
-				print ident "\t" classMethodName "(" methodParamsNoType ");";
+				print ident "\t" classMethodName "(" methodParamsNoType ")" genericTypeConstraint ";";
 			}
 			print ident "}";
 		}
@@ -647,14 +677,13 @@ function HandleSubFunction() {
 			$0 = gensub(/Sub +([^ \(]+)\([ \t]*$/, "void \\1(", "g", $0);
 		} else {
 			#Match regular methods
-			$0 = gensub(/Function +([^ \(]+)(\([^\)]*\)) +As +([^ \(]+( ?\(Of +[^ \)]+\))?)/, " \\3 \\1\\2", "g", $0);
-			HandleOf();
+			$0 = gensub(/Function +([^\(]+)(\([^\)]*\)) +As +(.+)/, " \\3 \\1\\2", "g", $0);
 		}
 		
 		methodParams = "";
 		methodParams = gensub(/.*\(([^\)]*)\).*/, "\\1", "g", $0);
 		methodParams = HandleParameters(methodParams);
-		$0 = gensub(/\(([^\)]*)\)/, "(" methodParams ")", "g", $0);
+		$0 = gensub(/\(([^\)]*)\)/, "(" methodParams ")" genericTypeConstraint, "g", $0);
 		
 		functionNestingLevel++;
 		
@@ -794,14 +823,14 @@ function HandleSelect() {
 
 	if(/^[ \t]*Case /) {
 		if(caseClause != "") {
-			print space "\tbreak;";
+			print ident "\tbreak;";
 		}
-		space = gensub(/^([ \t]*)Case.+/, "\\1", "g", $0);
+		
 		caseClause = gensub(/^[ \t]*Case +(.+)/, "\\1", "g", $0);
 		split(caseClause, cases, ",");
 		$0 = "";
 		for (idx in cases) {
-			$0 = $0 space "case " cases[idx] ":\n";
+			$0 = $0 ident "case " cases[idx] ":\n";
 		}
 		PrintGoNext();
 	}
@@ -914,7 +943,6 @@ function HandleIfElse() {
 		inlineThen = gensub(/^[ \t]*(Else)?If +(.+) +Then(\y.+)?/, "\\3", "g", $0);
 		
 		condition = HandleCondition(condition);
-		ident = gensub(/^([ \t]*)(Else)?If +.+ Then(\y.+)?/, "\\1", "g", $0);
 		#Made by concatenation to avoid interpreting & of the condition
 		if(/\yElseIf\y/) {
 			$0 = ident "} else if (" condition ") { " inlineThen;
