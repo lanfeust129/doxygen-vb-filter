@@ -194,8 +194,8 @@ function HandleNew(strContent) {
 		strContent = $0;
 	}
 	
-	if(/\yNew ([^\(\) ]+)\y ?([^ \(].+|)$/) {
-		strContent = gensub(/(\yNew [^\(\) ]+)(\y ?([^ \(].+|))$/, "\\1()\\2", "g", strContent);
+	if(/\yNew (\w+\y(\.\w+\y)*) ?([^ .\(].+|)$/) {
+		strContent = gensub(/(\yNew (\w+\y(\.\w+\y)*))( ?([^ .\(].+|))$/, "\\1()\\4", "g", strContent);
 	}
 	strContent = gensub(/(\y)New /, "\\1new ", "g", strContent);
 	
