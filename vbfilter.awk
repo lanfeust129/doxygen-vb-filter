@@ -36,7 +36,6 @@
 # arrays -> () to []
 # inline Linq
 # Optional params
-# new -> add parenthesis when needed
 # anonymous functions / subs
 # lambda expressions on multiple lines
 # Handles
@@ -183,10 +182,25 @@ function HandleOption() {
 #############################################################################
 
 function HandleObjects() {
-	$0 = gensub(/(\y)New /, "\\1new ", "g", $0);
-	$0 = gensub(/([^ ]+) As ([^=]+)( =)?/, "\\2 \\1\\3", "g", $0);
 	HandleOf();
+	HandleNew();
+	$0 = gensub(/([^ ]+) As ([^=]+)( =)?/, "\\2 \\1\\3", "g", $0);
 	HandleLambdaExpression();
+}
+
+function HandleNew(strContent) {
+	if(!strContent) {
+		strContent = $0;
+	}
+	
+	if(/\yNew ([^\(\) ]+)\y ?([^ \(].+|)$/) {
+		strContent = gensub(/(\yNew [^\(\) ]+)(\y ?([^ \(].+|))$/, "\\1()\\2", "g", strContent);
+	}
+	strContent = gensub(/(\y)New /, "\\1new ", "g", strContent);
+	
+	if(!strContent) {
+		$0 = strContent;
+	}
 }
 
 function HandleOf() {
@@ -289,7 +303,7 @@ function HandleParameters(parameter, removeType) {
 		
 		sub("ByVal ", "", param);
 		sub("ByRef ", "ref ", param);
-		param = gensub(/([ ,])New /, "\\1new ", "g", param);
+		HandleNew(param);
 		
 		if(strReturn == "") {
 			strReturn = gensub(/[ \t]*(ref +)?([^ ]+) As ([^ ]+)/, regexResultPattern, "g", param);
@@ -721,7 +735,8 @@ function HandleChar() {
 
 function HandleVariable() {
 	if(/^[ \t]*Dim ([^ ]+) As New ([^ =]+)/) {
-		$0 = gensub(/^([ \t]*)Dim ([^ ]+) As +New +([^ =\(]+)(.+)/, "\\1 \\3 \\2 = new \\3\\4", "g", $0);
+		# New handled by HandleObjects()
+		$0 = gensub(/^([ \t]*)Dim ([^ ]+) As +New +([^ =\(]+)(.+)/, "\\1 \\3 \\2 = New \\3\\4", "g", $0);
 		HandleObjects();
 		# New ... With { ... }
 		containsWith = 0;
