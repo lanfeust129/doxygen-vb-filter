@@ -189,6 +189,7 @@ function HandleObjects() {
 }
 
 function HandleNew(strContent) {
+	contentGiven = strContent;
 	if(!strContent) {
 		strContent = $0;
 	}
@@ -198,7 +199,7 @@ function HandleNew(strContent) {
 	}
 	strContent = gensub(/(\y)New /, "\\1new ", "g", strContent);
 	
-	if(!strContent) {
+	if(!contentGiven) {
 		$0 = strContent;
 	}
 }
