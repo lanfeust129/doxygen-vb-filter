@@ -32,7 +32,7 @@
 #---------------------------------------------------------------------------- 
 # TODO
 #---------------------------------------------------------------------------- 
-# types (Double, etc.)
+# type Date
 # arrays -> () to []
 # inline Linq
 # Optional params
@@ -40,6 +40,7 @@
 # lambda expressions on multiple lines
 # Handles
 # Property with default value
+# Conversions
 #---------------------------------------------------------------------------- 
 
 
@@ -50,18 +51,21 @@ BEGIN{
 	# unix line breaks
 	# set to 1 if using doxygen on unix with
 	# windows formatted sources
-	UnixLineBreaks=1;
+	UnixLineBreaks = 1;
 	
 	# leading shift inside classes/namespaces/etc.
 	# default is "\t" (tab)
-	ShiftRight="\t";
-	#ShiftRight="    ";
+	ShiftRight = "\t";
+	#ShiftRight = "    ";
 	
 	# add namespace definition at the beginning using project directory name
 	# should be enabled, if no explicit namespaces are used in the sources
 	# but doxygen should recognize package names.
 	# in C# unlike in VB .NET a namespace must always be defined
-	leadingNamespace=1;
+	leadingNamespace = 1;
+	
+	# Remove the blank lines if setted to 1
+	removeBlankLines = 0;
 	
 #############################################################################
 # helper variables, don't change
@@ -72,8 +76,6 @@ BEGIN{
 	# Program behavior
 	IsProperty = 0;
 	IsInterface = 0;
-	
-	removeBlankLines = 0;
 	
 	# Used to merge multiline statements
 	fullLine=1;
@@ -93,7 +95,7 @@ BEGIN{
 	setParameterName = "";
 	# Used when method parameters are on multiple lines
 	enumeratingParameters = 0;
-	#With
+	# With (stores the variable name used in the with statement)
 	withVariable = "";
 }
 
@@ -103,6 +105,7 @@ BEGIN{
 
 Dos2Unix();
 
+# Multiline statements (class with implements, properties, etc.)
 classDefinition != "" {
 	HandleInlineComment();
 	HandleClass();
@@ -194,6 +197,7 @@ function HandleNew(strContent) {
 		strContent = $0;
 	}
 	
+	#Add missing parenthesis
 	if(/\yNew (\w+\y(\.\w+\y)*) ?([^ .\(].+|)$/) {
 		strContent = gensub(/(\yNew (\w+\y(\.\w+\y)*))( ?([^ .\(].+|))$/, "\\1()\\4", "g", strContent);
 	}
@@ -225,8 +229,10 @@ function HandleLambdaExpression() {
 function HandleConversions() {
 	$0 = gensub(/(\y)CDate\(([^\)]+)\)/, "\\1Convert.ToDateTime(\\2)", "g", $0);
 	$0 = gensub(/(\y)CInt\(([^\)]+)\)/, "\\1Convert.ToInt32(\\2)", "g", $0);
+	$0 = gensub(/(\y)CBool\(([^\)]+)\)/, "\\1Convert.ToBoolean(\\2)", "g", $0);
 	
 	$0 = gensub(/(\y)(DirectCast|CType)\( *([^\),]+) *, *([^\),]+) *\)/, "\\1(\\4)\\3", "g", $0);
+	$0 = gensub(/(\y)TryCast\( *([^\),]+) *, *([^\),]+) *\)/, "\\1(\\2 as \\3)", "g", $0);
 }
 
 function HandleKeywords() {
@@ -247,10 +253,18 @@ function HandleKeywords() {
 	
 	#Types
 	$0 = gensub(/(\y)Integer(\y)/, "\\1int\\2", "g", $0);
+	$0 = gensub(/(\y)UInteger(\y)/, "\\1uint\\2", "g", $0);
+	$0 = gensub(/(\y)Long(\y)/, "\\1long\\2", "g", $0);
+	$0 = gensub(/(\y)ULong(\y)/, "\\1ulong\\2", "g", $0);
 	$0 = gensub(/(\y)Boolean(\y)/, "\\1bool\\2", "g", $0);
 	$0 = gensub(/(\y)Double(\y)/, "\\1double\\2", "g", $0);
 	$0 = gensub(/(\y)Decimal(\y)/, "\\1decimal\\2", "g", $0);
 	$0 = gensub(/(\y)String(\y)/, "\\1string\\2", "g", $0);
+	$0 = gensub(/(\y)Byte(\y)/, "\\1byte\\2", "g", $0);
+	$0 = gensub(/(\y)SByte(\y)/, "\\1sbyte\\2", "g", $0);
+	$0 = gensub(/(\y)Single(\y)/, "\\1float\\2", "g", $0);
+	$0 = gensub(/(\y)Short(\y)/, "\\1short\\2", "g", $0);
+	$0 = gensub(/(\y)UShort(\y)/, "\\1ushort\\2", "g", $0);
 	#Boolean
 	$0 = gensub(/(\y)True(\y)/, "\\1true\\2", "g", $0);
 	$0 = gensub(/(\y)False(\y)/, "\\1false\\2", "g", $0);
@@ -390,9 +404,11 @@ function HandleComments() {
 #############################################################################
 
 function MergeMultiline() {
-	if(fullLine==0){
-		fullLine=1;
-		$0= lastLine$0;
+	if(fullLine == 0){
+		fullLine = 1;
+		# remove identation but keep a space
+		$0 = gensub(/^[ \t]*/, " ", "g", $0);
+		$0 = lastLine $0;
 		lastLine="";
 	}
 
