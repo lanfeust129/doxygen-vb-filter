@@ -40,6 +40,7 @@
 # anonymous functions / subs
 # lambda expressions on multiple lines
 # Handles
+# Property with default value
 #---------------------------------------------------------------------------- 
 
 
@@ -305,8 +306,15 @@ function HandleForParameter(param) {
 	param[2] = gensub(/[ \t]*([^ ]+) +As +([^ ]+).+/, "\\1", "g", param[0]);
 }
 
-function Print(endLineChar) {
-	strLine = $0
+#############################################################################
+# Output / Print functions
+#############################################################################
+
+function Print(endLineChar, textToPrint) {
+	strLine = $0;
+	if(textToPrint) {
+		strLine = textToPrint;
+	}
 	if(endLineChar) {
 		strLine = strLine endLineChar;
 	}
@@ -323,8 +331,8 @@ function Print(endLineChar) {
 	}
 }
 
-function PrintGoNext(endLineChar) {
-	Print(endLineChar);
+function PrintGoNext(endLineChar, textToPrint) {
+	Print(endLineChar, textToPrint);
 	next;
 }
 
@@ -446,7 +454,7 @@ function HandleMethodAttribute() {
 # Class definition
 #############################################################################
 
-function HandleClassEnd() {
+function HandleClassDefEnd() {
 	strClass = classDefinition;
 	if(classInheritance != "") {
 		strClass = strClass " : " classInheritance;
@@ -458,7 +466,7 @@ function HandleClassEnd() {
 	}
 	classDefinition = "";
 	
-	print strClass " {";
+	Print("", strClass " {");
 }
 
 function HandleClassInheritance() {
@@ -473,7 +481,7 @@ function HandleClassInheritance() {
 		
 		next;
 	} else {
-		HandleClassEnd();
+		HandleClassDefEnd();
 	}
 }
 
@@ -532,14 +540,13 @@ function HandlePropertyEnd() {
 	IsProperty = 0;
 	
 	if(waitEndProperty) {
-		$0 = ident "}";
-		PrintGoNext();
+		PrintGoNext("", ident "}");
 	} else {
-		print ident "\tget;";
+		Print(";", ident "\tget");
 		if(hasPropertySetter) {
-			print ident "\tset;";
+			Print(";", ident "\tset");
 		}
-		print ident "}";
+		Print("}", ident);
 	}
 }
 
@@ -658,13 +665,13 @@ function HandleSubFunction() {
 		
 			sub(/\yabstract\y/, "", interfaceMethod);
 			
-			print ident interfaceMethod;
+			Print("", ident interfaceMethod);
 			if(/\yFunction\y/) {
-				print ident "\treturn " classMethodName "(" methodParamsNoType ")" genericTypeConstraint ";";
+				Print(";", ident "\treturn " classMethodName "(" methodParamsNoType ")" genericTypeConstraint);
 			} else {
-				print ident "\t" classMethodName "(" methodParamsNoType ")" genericTypeConstraint ";";
+				Print(";", ident "\t" classMethodName "(" methodParamsNoType ")" genericTypeConstraint);
 			}
-			print ident "}";
+			Print("}", ident);
 		}
 		
 		if(/Sub New/) {
@@ -823,7 +830,7 @@ function HandleSelect() {
 
 	if(/^[ \t]*Case /) {
 		if(caseClause != "") {
-			print ident "\tbreak;";
+			Print(";", ident "\tbreak");
 		}
 		
 		caseClause = gensub(/^[ \t]*Case +(.+)/, "\\1", "g", $0);
