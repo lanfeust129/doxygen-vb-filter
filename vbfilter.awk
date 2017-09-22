@@ -35,7 +35,6 @@
 # type Date
 # arrays -> () to []
 # inline Linq
-# Optional params
 # anonymous functions / subs
 # lambda expressions on multiple lines
 # Handles
@@ -342,6 +341,7 @@ function HandleParameters(parameter, removeType) {
 		
 		sub("ByVal ", "", param);
 		sub("ByRef ", "ref ", param);
+		sub("Optional ", " ", param);
 		HandleNew(param);
 		
 		if(strReturn == "") {
