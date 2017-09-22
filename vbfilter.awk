@@ -41,6 +41,7 @@
 # Property with default value and a setter
 # Conversions
 # Dim test as testType = New testType With
+# MyBase : i.e. MyBase.New
 #---------------------------------------------------------------------------- 
 
 
