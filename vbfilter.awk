@@ -42,6 +42,7 @@
 # Conversions
 # Dim test as testType = New testType With
 # MyBase : i.e. MyBase.New
+# Fix adding parenthesis for new statement
 #---------------------------------------------------------------------------- 
 
 
