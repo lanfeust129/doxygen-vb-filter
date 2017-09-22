@@ -534,9 +534,10 @@ function HandleInterface() {
 
 function HandleMethodAttribute() {
 	if(/^[ \t]*<[^>]+>/) {
+		IsSingleLine = /^[ \t]*<[^>]+>[ \t]*$/;
 		$0 = gensub(/^([ \t]*)<([^>]+)>/, "\\1[\\2]", "g", $0);
 		
-		if(/^[ \t]*<[^>]+>[ \t]*$/) {
+		if(IsSingleLine) {
 			PrintGoNext();
 		}
 	}
