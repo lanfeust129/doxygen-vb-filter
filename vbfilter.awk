@@ -68,6 +68,8 @@ BEGIN{
 	# Remove the blank lines if setted to 1
 	removeBlankLines = 0;
 	
+	eventHandlerSuffix = "EventHandler";
+	
 #############################################################################
 # helper variables, don't change
 #############################################################################
@@ -99,6 +101,8 @@ BEGIN{
 	enumeratingParameters = 0;
 	# With (stores the variable name used in the with statement)
 	withVariable = "";
+	# Printing
+	printQueue[0] = "";
 }
 
 #############################################################################
@@ -134,6 +138,7 @@ HandleMethodAttribute();
 HandleClass();
 HandleInterface();
 HandleProperty();
+HandleEvent();
 
 HandleConversions();
 HandleStringConcatenation();
@@ -246,6 +251,17 @@ function HandleConversions() {
 	
 	$0 = gensub(/(\y)(DirectCast|CType)\( *([^\(\),]+(\(.+\))*) *, *([^\(\),]+(\(.+\))*) *\)/, "\\1(\\5)\\3", "g", $0);
 	$0 = gensub(/(\y)TryCast\( *([^\),]+) *, *([^\),]+) *\)/, "\\1(\\2 as \\3)", "g", $0);
+}
+
+# Checks if a keyword is contained within $0
+# This function will remove any string that could make wrong matching
+function ContainsKeyword(strKeyword) {
+	strCopy = $0;
+	while(match(strCopy,/"[^"]*"/)) {
+		strCopy = gensub(/"[^"]*"/, "", "g", strCopy);
+	}
+	strPattern = "\\y" strKeyword "\\y";
+	return strCopy ~ strPattern;
 }
 
 function HandleKeywords() {
@@ -366,6 +382,14 @@ function HandleForParameter(param) {
 # Output / Print functions
 #############################################################################
 
+function AddPrintQueue(endLineChar, strLine) {
+	idx = split(tmp, printQueue, " ");
+	if(endLineChar) {
+		strLine = strLine endLineChar;
+	}
+	printQueue[idx] = strLine;
+}
+
 function Print(endLineChar, textToPrint) {
 	strLine = $0;
 	if(textToPrint) {
@@ -385,6 +409,11 @@ function Print(endLineChar, textToPrint) {
 	} else {
 		print strLine;
 	}
+	
+	for(idx in printQueue) {
+		print printQueue[idx];
+	}
+	delete printQueue;
 }
 
 function PrintGoNext(endLineChar, textToPrint) {
@@ -528,7 +557,7 @@ function HandleClassDefEnd() {
 }
 
 function HandleClassInheritance() {
-	if(/(Inherits|Implements)/) {
+	if(ContainsKeyword("(Inherits|Implements)")) {
 		inheritance = gensub(/[ \t]*(Inherits|Implements) +(.+)/, "\\2", "g", $0);
 		inheritance = HandleOf(inheritance);
 		
@@ -546,7 +575,7 @@ function HandleClassInheritance() {
 
 function HandleClass() {
 	#First match ending of class
-	if(/End Class/) {
+	if(ContainsKeyword("End Class")) {
 		$0 = gensub(/([ \t]*)End Class/, "\\1}", "g", $0);
 		classNestingLevel--;
 		
@@ -557,7 +586,7 @@ function HandleClass() {
 		HandleClassInheritance();
 	}
 
-	if(/ Class /) {
+	if(ContainsKeyword("Class")) {
 		IsInClassDef = 1;
 		className[classNestingLevel] = gensub(/^.*Class +([^ \(]+\y).*$/, "\\1", "g", $0);
 		
@@ -572,7 +601,7 @@ function HandleClass() {
 			$0 = gensub(/(.*Class +[^\(]+)\(Of +([^ \)]+) *\)/, "\\1<\\2>", "g", $0);
 		}
 		
-		if(/\yPartial\y/) {
+		if(ContainsKeyword("Partial")) {
 			$0 = gensub(/\y(Partial\y)/, "", "g", $0);
 			$0 = gensub(/(.+)Class +([^ \(]+)/, "\\1 partial class \\2", "g", $0);
 		} else {
@@ -656,7 +685,7 @@ function HandlePropertyNextLines() {
 }
 
 function HandlePropertyFirstLine() {
-	if(/ Property /) {
+	if(ContainsKeyword("Property")) {
 		IsProperty = 1;
 		hasPropertySetter = 1;
 		propertyDefaultValue = "";
@@ -667,7 +696,7 @@ function HandlePropertyFirstLine() {
 		
 		$0 = gensub(/([ \t]*[^ ]+) ([^ ]+) As ([^ ]+)/, "\\1 \\3 \\2 {", "g", $0);
 		
-		if(/\yReadOnly\y/){
+		if(ContainsKeyword("ReadOnly")){
 			hasPropertySetter = 0;
 			sub("ReadOnly ", "", $0);
 		}
@@ -701,7 +730,7 @@ function HandleSubFunction() {
 	}
 
 	#Then match sub or function itself (avoid anonymous function)
-	if(/^[^"]*\y(Sub|Function) +[^ \(]+\y[^"]*$/) {
+	if(ContainsKeyword("(Sub|Function) +[^ \\(]+")) {
 		genericTypeConstraint = "";
 		
 		# Handle (Of Type) to remove parenthesis (easier to handle the rest)
@@ -713,7 +742,7 @@ function HandleSubFunction() {
 			$0 = gensub(/(.*(Sub|Function) +[^\( ]+ *< *.+) +As +.+>( *\(.*\))/, "\\1>\\3", "g", $0);
 		}
 		
-		if(/\yImplements\y/) {
+		if(ContainsKeyword("Implements")) {
 			interfaceMethodName = gensub(/^.+\yImplements\y(.+)$/, "\\1", "g", $0);
 			
 			#remove implements from current line
@@ -738,7 +767,7 @@ function HandleSubFunction() {
 			sub(/\yabstract\y/, "", interfaceMethod);
 			
 			Print("", ident interfaceMethod);
-			if(/\yFunction\y/) {
+			if(ContainsKeyword("Function")) {
 				Print(";", ident "\treturn " classMethodName "(" methodParamsNoType ")" genericTypeConstraint);
 			} else {
 				Print(";", ident "\t" classMethodName "(" methodParamsNoType ")" genericTypeConstraint);
@@ -746,10 +775,10 @@ function HandleSubFunction() {
 			Print("}", ident);
 		}
 		
-		if(/Sub New/) {
+		if(ContainsKeyword("Sub New")) {
 			#Match constructors
 			$0 = gensub(/Sub +New(.+)/, className[classNestingLevel - 1] "\\1", "g", $0);
-		} else if (/ Sub /) {
+		} else if (ContainsKeyword(" Sub ")) {
 			#Match void methods
 			$0 = gensub(/Sub +([^ \(]+)\(([^\)]*)\)/, "void \\1(\\2)", "g", $0);
 			#Sub not entirely on one line 
@@ -766,7 +795,7 @@ function HandleSubFunction() {
 		
 		functionNestingLevel++;
 		
-		if(/ abstract / || IsInterface) {
+		if(ContainsKeyword(" abstract ") || IsInterface) {
 			PrintGoNext(";");
 		} else if (/[\(][ \t]*$/) {
 			PrintGoNext();
@@ -798,7 +827,7 @@ function HandleVariable() {
 		HandleObjects();
 		# New ... With { ... }
 		containsWith = 0;
-		if(/(\y)With(\y)/) {
+		if(ContainsKeyword("With")) {
 			containsWith = 1;
 			$0 = gensub(/(\y)With(\y)/, "\\1", "g", $0);
 		}
@@ -989,6 +1018,24 @@ function HandleTryCatch() {
 		}
 
 		PrintGoNext();
+	}
+}
+
+#############################################################################
+# Events
+#############################################################################
+
+function HandleEvent() {
+	if(ContainsKeyword("Event")) {
+		eventName = gensub(/^.+ +Event +(\w+)\y.+$/, "\\1", "g", $0);
+		HandleOf();
+		eventHandlerParams = gensub(/^.+ +Event +\w+ ?\(([^\)]+)\).*$/, "\\1", "g", $0);
+		eventHandlerParams = HandleParameters(eventHandlerParams);
+		
+		AddPrintQueue(";", gensub(/^(.+ +)Event +(\w+)\y.+$/, "\\1delegate void " eventName eventHandlerSuffix "(" eventHandlerParams ")", "g", $0));
+		
+		$0 = gensub(/^(.+ +)Event +(\w+)\y.+$/, "\\1event " eventName eventHandlerSuffix " " eventName, "g", $0);
+		PrintGoNext(";");
 	}
 }
 
