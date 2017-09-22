@@ -43,6 +43,7 @@
 # Dim test as testType = New testType With
 # MyBase : i.e. MyBase.New
 # Fix adding parenthesis for new statement
+# Do While Loop
 #---------------------------------------------------------------------------- 
 
 
@@ -278,6 +279,7 @@ function HandleKeywords() {
 	$0 = gensub(/(\y)Overrides(\y)/, "\\1override\\2", "g", $0);
 	$0 = gensub(/(\y)Shared(\y)/, "\\1static\\2", "g", $0);
 	$0 = gensub(/(\y)Const(\y)/, "\\1const\\2", "g", $0);
+	$0 = gensub(/(\y)Friend(\y)/, "\\1internal\\2", "g", $0);
 	
 	$0 = gensub(/(\y)Overloads(\y)/, "\\1", "g", $0);
 	
