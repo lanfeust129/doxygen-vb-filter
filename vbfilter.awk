@@ -134,6 +134,8 @@ HandleKeywords();
 HandleNamespace();
 HandleMethodAttribute();
 
+HandleChar();
+
 HandleClass();
 HandleInterface();
 HandleProperty();
@@ -273,6 +275,8 @@ function HandleKeywords() {
 	$0 = gensub(/(\y)Overrides(\y)/, "\\1override\\2", "g", $0);
 	$0 = gensub(/(\y)Shared(\y)/, "\\1static\\2", "g", $0);
 	$0 = gensub(/(\y)Const(\y)/, "\\1const\\2", "g", $0);
+	
+	$0 = gensub(/(\y)Overloads(\y)/, "\\1", "g", $0);
 	
 	$0 = gensub(/(\y)Return(\y)/, "\\1return\\2", "g", $0);
 	# Avoid replacing ReadOnly of properties
@@ -808,8 +812,12 @@ function HandleSubFunction() {
 #############################################################################
 
 function HandleChar() {
-	if(/"[^"]"c/) {
-		$0 = gensub(/"([^"])"c/, "'\\1'", "g", $0);
+	if(/"[^"]"c\y/) {
+		if(/"\\"c\y/) {
+			$0 = gensub(/"\\"c/, "'\\\\\\\\'", "g", $0);
+		} else {
+			$0 = gensub(/"([^"])"c/, "'\\1'", "g", $0);
+		}
 	}
 }
 
@@ -1113,7 +1121,6 @@ function HandleCodeLine() {
 		}
 
 		HandleObjects();
-		HandleChar();
 		
 		if(enumeratingParameters) {
 			PrintGoNext();
