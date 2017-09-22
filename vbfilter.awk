@@ -93,6 +93,7 @@ BEGIN{
 	# Used for properties
 	hasPropertySetter = 1;
 	setParameterName = "";
+	propertyDefaultValue = "";
 	# Used when method parameters are on multiple lines
 	enumeratingParameters = 0;
 	# With (stores the variable name used in the with statement)
@@ -590,9 +591,15 @@ function HandlePropertyEnd() {
 	if(waitEndProperty) {
 		PrintGoNext("", ident "}");
 	} else {
-		Print(";", ident "\tget");
 		if(hasPropertySetter) {
+			Print(";", ident "\tget");
 			Print(";", ident "\tset");
+		} else {
+			if(propertyDefaultValue) {
+				Print("", ident "\tget { return " propertyDefaultValue "; }");
+			} else {
+				Print(";", ident "\tget");
+			}
 		}
 		Print("}", ident);
 	}
@@ -642,6 +649,7 @@ function HandlePropertyFirstLine() {
 	if(/ Property /) {
 		IsProperty = 1;
 		hasPropertySetter = 1;
+		propertyDefaultValue = "";
 		waitEndProperty = 0;
 		setParameterName = "";
 		
@@ -649,9 +657,15 @@ function HandlePropertyFirstLine() {
 		
 		$0 = gensub(/([ \t]*[^ ]+) ([^ ]+) As ([^ ]+)/, "\\1 \\3 \\2 {", "g", $0);
 		
-		if(/ ReadOnly /){
+		if(/\yReadOnly\y/){
 			hasPropertySetter = 0;
 			sub("ReadOnly ", "", $0);
+		}
+		
+		#Default value
+		if(/=/) {
+			propertyDefaultValue = gensub(/^.+ ?= ?(.+)$/, "\\1", "g", $0);
+			$0 = gensub(/^(.+) ?= ?(.+)$/, "\\1", "g", $0);
 		}
 		
 		PrintGoNext();
