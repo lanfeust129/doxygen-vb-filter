@@ -1067,8 +1067,13 @@ function HandleIfElse() {
 		$0 = gensub(/([ \t]*)End +If/, "\\1}", "g", $0);
 		PrintGoNext();
 	}
-
-	if(/[ \t]*(Else)?If .+ Then/) {
+	
+	# Compiler condition
+	if(/^[ \t]*#(End )?If/) {
+		PrintGoNext();
+	}
+	
+	if(/^[ \t]*(Else)?If .+ Then/) {
 		condition = gensub(/^[ \t]*(Else)?If +(.+) +Then(\y.+)?/, "\\2", "g", $0);
 		inlineThen = gensub(/^[ \t]*(Else)?If +(.+) +Then(\y.+)?/, "\\3", "g", $0);
 		
