@@ -374,7 +374,7 @@ function HandleParameters(parameter, removeType) {
 # and returns an array containing "parameterType parameterName" (index 1), "parameterName" (index 2) 
 function HandleForParameter(param) {
 	param[1] = gensub(/[ \t]*([^ ]+) +As +([^ ]+)/, "\\2 \\1", "g", param[0]);
-	param[2] = gensub(/[ \t]*([^ ]+) +As +([^ ]+).+/, "\\1", "g", param[0]);
+	param[2] = gensub(/[ \t]*([^ ]+)( +As +([^ ]+))?.+/, "\\1", "g", param[0]);
 }
 
 #############################################################################
@@ -977,7 +977,7 @@ function HandleForForEach() {
 		resParam[0] = gensub(/^[ \t]*For +(.+) +To.+/, "\\1", "g", $0);
 		HandleForParameter(resParam);
 		
-		$0 = "for(" resParam[1] ";" resParam[2] " <= " condition ";" resParam[2] "++) {"
+		$0 = ident "for(" resParam[1] ";" resParam[2] " <= " condition ";" resParam[2] "++) {"
 
 		PrintGoNext();
 	}
