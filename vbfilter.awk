@@ -208,11 +208,20 @@ function HandleNew(strContent) {
 	}
 }
 
-function HandleOf() {
-	#Begin with nested Of
-	while(/\(Of +(( *,? *[^ \(\)]+)+) *\)/) {
-		$0 = gensub(/\(Of +(( *,? *[^ \(\)]+)+) *\)/, "<\\1>", "g", $0);
+function HandleOf(strInput) {
+	inputProvided = strInput;
+	if(!inputProvided) {
+		strInput = $0;
 	}
+	#Begin with nested Of
+	while(match(strInput, /\(Of +(( *,? *[^ \(\)]+)+) *\)/)) {
+		strInput = gensub(/\(Of +(( *,? *[^ \(\)]+)+) *\)/, "<\\1>", "g", strInput);
+	}
+	if(!inputProvided) {
+		$0 = strInput;
+	}
+	
+	return strInput;
 }
 
 function HandleLambdaExpression() {
@@ -226,6 +235,7 @@ function HandleLambdaExpression() {
 # Functions
 #############################################################################
 
+# Handles VB conversion functions
 function HandleConversions() {
 	$0 = gensub(/(\y)CDate\(([^\)]+)\)/, "\\1Convert.ToDateTime(\\2)", "g", $0);
 	$0 = gensub(/(\y)CInt\(([^\)]+)\)/, "\\1Convert.ToInt32(\\2)", "g", $0);
@@ -244,6 +254,7 @@ function HandleKeywords() {
 	$0 = gensub(/(\y)Overridable(\y)/, "\\1virtual\\2", "g", $0);
 	$0 = gensub(/(\y)Overrides(\y)/, "\\1override\\2", "g", $0);
 	$0 = gensub(/(\y)Shared(\y)/, "\\1static\\2", "g", $0);
+	$0 = gensub(/(\y)Const(\y)/, "\\1const\\2", "g", $0);
 	
 	$0 = gensub(/(\y)Return(\y)/, "\\1return\\2", "g", $0);
 	# Avoid replacing ReadOnly of properties
@@ -290,6 +301,7 @@ function HandleCondition(strCondition) {
 	return strCondition;
 }
 
+# Replaces br and p xHTML statements
 function HandleXHTML(str) {
 	if(/<br ?\/>/) {
 		str = gensub(/<([^>]+)\/>/, "<\\1>", "g", str);
@@ -301,6 +313,8 @@ function HandleXHTML(str) {
 	return str;
 }
 
+# Takes functions / subs parameter (what is between parenthesis, without them) and converts them
+# if removeType (2nd parameter) is setted, the function returns the parameters name only (comma separated)
 function HandleParameters(parameter, removeType) {
 	if(match(parameter, /,/)) {
 		split(parameter, arrayParams, ",");
@@ -330,6 +344,8 @@ function HandleParameters(parameter, removeType) {
 	return strReturn;
 }
 
+# Takes a For statement parameter (in an array, the parameter must be at the index 0)
+# and returns an array containing "parameterType parameterName" (index 1), "parameterName" (index 2) 
 function HandleForParameter(param) {
 	param[1] = gensub(/[ \t]*([^ ]+) +As +([^ ]+)/, "\\2 \\1", "g", param[0]);
 	param[2] = gensub(/[ \t]*([^ ]+) +As +([^ ]+).+/, "\\1", "g", param[0]);
@@ -503,6 +519,7 @@ function HandleClassDefEnd() {
 function HandleClassInheritance() {
 	if(/(Inherits|Implements)/) {
 		inheritance = gensub(/(Inherits|Implements) +(.+)/, "\\2", "g", $0);
+		inheritance = HandleOf(inheritance);
 		
 		if(classInheritance == "") {
 			classInheritance = inheritance;
