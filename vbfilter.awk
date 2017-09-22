@@ -151,6 +151,7 @@ HandleForForEach();
 HandleTryCatch();
 HandleIfElse();
 HandleSyncLock();
+HandleUsing();
 
 HandleCodeLine();
 
@@ -195,6 +196,7 @@ function HandleOption() {
 
 function HandleObjects() {
 	HandleOf();
+	$0 = gensub(/([^ ]+) As +New +(\w+(\.\w+)*(<[^>]+>)*(\(.+\))*)$/, "\\2 \\1 = New \\2", "g", $0);
 	HandleNew();
 	$0 = gensub(/([^ ]+) As ([^=]+)( =)?/, "\\2 \\1\\3", "g", $0);
 	HandleLambdaExpression();
@@ -207,8 +209,8 @@ function HandleNew(strContent) {
 	}
 	
 	#Add missing parenthesis
-	if(/\yNew (\w+\y(\.\w+\y)*) ?([^ .\(].+|)$/) {
-		strContent = gensub(/(\yNew (\w+\y(\.\w+\y)*))( ?([^ .\(].+|))$/, "\\1()\\4", "g", strContent);
+	if(/\yNew (\w+\y(\.\w+\y)*) ?([^ \.\(].+|)$/) {
+		strContent = gensub(/(\yNew (\w+(\.\w+)*(<.+>)*))( ?([^ .\(].+|))$/, "\\1()\\5", "g", strContent);
 	}
 	strContent = gensub(/(\y)New /, "\\1new ", "g", strContent);
 	
@@ -1072,6 +1074,25 @@ function HandleSyncLock() {
 }
 
 #############################################################################
+# Using
+#############################################################################
+
+function HandleUsing() {
+	if(/^[ \t]*End +Using\y/) {
+		$0 = gensub(/([ \t]*)End +Using/, "\\1}", "g", $0);
+
+		PrintGoNext();
+	}
+	
+	if(/^[ \t]*Using\y/) {
+		HandleObjects();
+		$0 = gensub(/([ \t]*)Using +(.+)/, "\\1using(\\2) {", "g", $0);
+
+		PrintGoNext();
+	}
+}
+
+#############################################################################
 # If Else
 #############################################################################
 
@@ -1124,7 +1145,7 @@ function HandleCodeLine() {
 		if(enumeratingParameters && /\)[ \t]*$/) {
 			enumeratingParameters = 0;
 		}
-
+		
 		HandleObjects();
 		
 		if(enumeratingParameters) {
