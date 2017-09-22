@@ -1037,6 +1037,10 @@ function HandleEvent() {
 		$0 = gensub(/^(.+ +)Event +(\w+)\y.+$/, "\\1event " eventName eventHandlerSuffix " " eventName, "g", $0);
 		PrintGoNext(";");
 	}
+	
+	if(ContainsKeyword("RaiseEvent")) {
+		sub("RaiseEvent ", "");
+	}
 }
 
 #############################################################################
