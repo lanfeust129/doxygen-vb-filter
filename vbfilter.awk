@@ -68,6 +68,7 @@ BEGIN{
 	# Remove the blank lines if setted to 1
 	removeBlankLines = 0;
 	
+	# Suffix added to an event's name to create it's handler method
 	eventHandlerSuffix = "EventHandler";
 	
 #############################################################################
@@ -101,8 +102,6 @@ BEGIN{
 	enumeratingParameters = 0;
 	# With (stores the variable name used in the with statement)
 	withVariable = "";
-	# Printing
-	printQueue[0] = "";
 }
 
 #############################################################################
