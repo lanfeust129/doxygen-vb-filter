@@ -38,7 +38,7 @@
 # anonymous functions / subs
 # lambda expressions on multiple lines
 # Handles
-# Property with default value
+# Property with default value and a setter
 # Conversions
 # Dim test as testType = New testType With
 #---------------------------------------------------------------------------- 
@@ -700,7 +700,7 @@ function HandleSubFunction() {
 	}
 
 	#Then match sub or function itself (avoid anonymous function)
-	if(/\y(Sub|Function) +[^ \(]+\y/) {
+	if(/^[^"]*\y(Sub|Function) +[^ \(]+\y[^"]*$/) {
 		genericTypeConstraint = "";
 		
 		# Handle (Of Type) to remove parenthesis (easier to handle the rest)
