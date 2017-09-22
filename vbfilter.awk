@@ -242,7 +242,7 @@ function HandleConversions() {
 	$0 = gensub(/(\y)CInt\(([^\)]+)\)/, "\\1Convert.ToInt32(\\2)", "g", $0);
 	$0 = gensub(/(\y)CBool\(([^\)]+)\)/, "\\1Convert.ToBoolean(\\2)", "g", $0);
 	
-	$0 = gensub(/(\y)(DirectCast|CType)\( *([^\),]+) *, *([^\),]+) *\)/, "\\1(\\4)\\3", "g", $0);
+	$0 = gensub(/(\y)(DirectCast|CType)\( *([^\(\),]+(\(.+\))*) *, *([^\(\),]+(\(.+\))*) *\)/, "\\1(\\5)\\3", "g", $0);
 	$0 = gensub(/(\y)TryCast\( *([^\),]+) *, *([^\),]+) *\)/, "\\1(\\2 as \\3)", "g", $0);
 }
 
@@ -862,8 +862,10 @@ function HandleWith() {
 		PrintGoNext();
 	}
 
-	if(/[ \t]+\./ && withVariable != "") {
-		$0 = gensub(/([ \t]+)(\..+)/, "\\1" withVariable "\\2", "g", $0);
+	if(/[\(, \t]+\./) {
+		while(/[\(, \t]+\./ && withVariable != "") {
+			$0 = gensub(/([\(, \t]+)(\..+)/, "\\1" withVariable "\\2", "g", $0);
+		}
 		PrintGoNext(";");
 	}
 
