@@ -41,6 +41,7 @@
 # Handles
 # Property with default value
 # Conversions
+# Dim test as testType = New testType With
 #---------------------------------------------------------------------------- 
 
 
@@ -135,6 +136,7 @@ HandleInterface();
 HandleProperty();
 
 HandleConversions();
+HandleStringConcatenation();
 HandleSubFunction();
 HandleVariable();
 HandleWith();
@@ -300,6 +302,13 @@ function HandleCondition(strCondition) {
 	strCondition = gensub(/([^!])=/, "\\1==", "g", strCondition);
 	
 	return strCondition;
+}
+
+function HandleStringConcatenation() {
+	while(/" ?&/ || /& ?"/) {
+		$0 = gensub(/&( ?)"/, "+\\1\"", "g", $0);
+		$0 = gensub(/"( ?)&/, "\"\\1+", "g", $0);
+	}
 }
 
 # Replaces br and p xHTML statements
@@ -519,7 +528,7 @@ function HandleClassDefEnd() {
 
 function HandleClassInheritance() {
 	if(/(Inherits|Implements)/) {
-		inheritance = gensub(/(Inherits|Implements) +(.+)/, "\\2", "g", $0);
+		inheritance = gensub(/[ \t]*(Inherits|Implements) +(.+)/, "\\2", "g", $0);
 		inheritance = HandleOf(inheritance);
 		
 		if(classInheritance == "") {
