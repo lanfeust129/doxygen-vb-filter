@@ -549,7 +549,7 @@ function HandleClass() {
 
 	if(/ Class /) {
 		IsInClassDef = 1;
-		className[classNestingLevel] = gensub(/.+Class +([^ \(]+).+/, "\\1", "g", $0);
+		className[classNestingLevel] = gensub(/^.*Class +([^ \(]+\y).*$/, "\\1", "g", $0);
 		
 		#Stores and remove generic type constraint
 		if(/.*Class +([^\( ]+) *\(Of +([^ \)]+) *As *([^\) ]+)\)/) {
