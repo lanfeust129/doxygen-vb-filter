@@ -535,6 +535,10 @@ function HandleInterface() {
 function HandleMethodAttribute() {
 	if(/^[ \t]*<[^>]+>/) {
 		$0 = gensub(/^([ \t]*)<([^>]+)>/, "\\1[\\2]", "g", $0);
+		
+		if(/^[ \t]*<[^>]+>[ \t]*$/) {
+			PrintGoNext();
+		}
 	}
 }
 
