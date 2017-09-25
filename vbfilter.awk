@@ -806,7 +806,7 @@ function HandleSubFunction() {
 		
 		functionNestingLevel++;
 		
-		if(ContainsKeyword(" abstract ") || IsInterface) {
+		if(ContainsKeyword("abstract") || IsInterface) {
 			PrintGoNext(";");
 		} else if (/[\(][ \t]*$/) {
 			PrintGoNext();
